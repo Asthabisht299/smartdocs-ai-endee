@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SmartDocs AI</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="container">
+    <header class="hero">
+      <p class="badge">Endee-style semantic retrieval demo</p>
+      <h1>SmartDocs AI</h1>
+      <p class="subtitle">
+        Upload notes, PDFs, and code files. Search by meaning, filter by collection and metadata,
+        and ask grounded questions from your own documents.
+      </p>
+      <p class="mode-badge">Retrieval backend: {{ retriever_mode }}</p>
+    </header>
+
+    <section class="stats-grid stats-grid-4">
+      <div class="stat-card">
+        <span>Total documents</span>
+        <h3>{{ stats.total_documents }}</h3>
+      </div>
+      <div class="stat-card">
+        <span>Total chunks</span>
+        <h3>{{ stats.total_chunks }}</h3>
+      </div>
+      <div class="stat-card">
+        <span>Total collections</span>
+        <h3>{{ stats.total_collections }}</h3>
+      </div>
+      <div class="stat-card">
+        <span>Last uploaded</span>
+        <h3>{{ stats.last_uploaded }}</h3>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="panel">
+        <h2>Upload document</h2>
+        <form action="/upload" method="post" enctype="multipart/form-data" class="form">
+          <input type="file" name="file" required />
+
+          <select name="collection" required>
+            {% for item in collections %}
+            <option value="{{ item }}">{{ item }}</option>
+            {% endfor %}
+          </select>
+
+          <input type="text" name="topic" placeholder="Topic e.g. DBMS, Python, DSA" />
+          <button type="submit">Upload and Index</button>
+        </form>
+      </div>
+
+      <div class="panel">
+        <h2>Search documents</h2>
+        <form action="/search" method="post" class="form">
+          <input type="text" name="query" placeholder="Ask something from your documents..." required />
+
+          <select name="collection">
+            <option value="">All collections</option>
+            {% for item in collections %}
+            <option value="{{ item }}">{{ item }}</option>
+            {% endfor %}
+          </select>
+
+          <input type="text" name="topic" placeholder="Optional topic filter" />
+          <input type="text" name="file_type" placeholder="Optional file type filter" />
+          <button type="submit">Search</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="panel ask-panel">
+      <h2>Ask from documents</h2>
+      <form action="/ask" method="post" class="form">
+        <input type="text" name="query" placeholder="Example: What is binary search?" required />
+
+        <select name="collection">
+          <option value="">All collections</option>
+          {% for item in collections %}
+          <option value="{{ item }}">{{ item }}</option>
+          {% endfor %}
+        </select>
+
+        <input type="text" name="topic" placeholder="Optional topic filter" />
+        <input type="text" name="file_type" placeholder="Optional file type filter" />
+        <button type="submit">Generate grounded answer</button>
+      </form>
+
+      <div class="samples">
+        <h3>Sample queries</h3>
+        <div class="sample-list">
+          {% for item in sample_queries %}
+          <span class="sample-chip">{{ item }}</span>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+
+    <div class="status">
+      <p>{{ message }}</p>
+    </div>
+
+    {% if answer %}
+    <section class="answer-box">
+      <h2>Grounded Answer</h2>
+      <pre>{{ answer }}</pre>
+    </section>
+    {% endif %}
+
+    <section class="results">
+      {% if results %}
+        <h2>Retrieved Chunks</h2>
+        {% for result in results %}
+        <article class="result-card">
+          <div class="result-header">
+            <div>
+              <h3>{{ result.metadata.file_name }}</h3>
+              <p class="meta">
+                Collection: {{ result.metadata.collection }} · Topic: {{ result.metadata.topic }} ·
+                Type: {{ result.metadata.file_type }} · Chunk: {{ result.metadata.chunk_id }}
+              </p>
+            </div>
+            <span class="score">Score {{ '%.3f'|format(result.score) }}</span>
+          </div>
+          <p class="snippet">{{ result.text }}</p>
+        </article>
+        {% endfor %}
+      {% else %}
+        <div class="empty-state">
+          <h2>No results yet</h2>
+          <p>Upload documents, search semantically, or use Ask from documents.</p>
+        </div>
+      {% endif %}
+    </section>
+
+    {% if related %}
+    <section class="results">
+      <h2>Related Chunks</h2>
+      {% for item in related %}
+      <article class="result-card related-card">
+        <div class="result-header">
+          <div>
+            <h3>{{ item.metadata.file_name }}</h3>
+            <p class="meta">
+              Collection: {{ item.metadata.collection }} · Topic: {{ item.metadata.topic }} ·
+              Type: {{ item.metadata.file_type }} · Chunk: {{ item.metadata.chunk_id }}
+            </p>
+          </div>
+          <span class="score">Similarity {{ '%.3f'|format(item.score) }}</span>
+        </div>
+        <p class="snippet">{{ item.text }}</p>
+      </article>
+      {% endfor %}
+    </section>
+    {% endif %}
+  </div>
+</body>
+</html>
